@@ -42,20 +42,20 @@ static BTN_EVT: Channel<CriticalSectionRawMutex, ButtonEvent, 4> = Channel::new(
 
 /*
  *
- * State        > Event         > Period
- * Red(false)   > Tick          > 3s 
- * Red(false)   > IsPressed     > 3s
- * Red(true)    > Tick          > 3s
- * Red(true)    > IsPressed     > 3s 
+ * State        > Event         > Next State    > Period
+ * Red(false)   > Tick          > Green(false)  > 3s 
+ * Red(false)   > IsPressed     > Green(false)  > 2s
+ * Red(true)    > Tick          > Green(true)   > 2s
+ * Red(true)    > IsPressed     > Green(true)   > 2s 
  *
- * Amber(false) > Tick          > 1s
- * Amber(false) > IsPressed     > 1s
- * Amber(true)  > Tick          > 1s 
- * Amber(true)  > IsPressed     > 1s
+ * Amber(false) > Tick          > Amber(false)  > 1s
+ * Amber(false) > IsPressed     > Amber(false)  > 1s
+ * Amber(true)  > Tick          > Green(false)  > 2s 
+ * Amber(true)  > IsPressed     > Green(false)  > 2s
  *
- * Green(false) > Tick          > 3s
- * Green(false) > IsPressed     > 2s
- * Green(true)  > Tick          > 2s 
+ * Green(false) > Tick          > Red(false)    > 3s
+ * Green(false) > IsPressed     > Red(false)    > 3s
+ * Green(true)  > Tick          > Red(false)    > 2s 
  * Green(true)  > IsPressed     > 2s
  * */
  
