@@ -589,6 +589,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42c2ee95b945a4780796e4359e72c033aed3b45073880e8029458f538532db8a"
 
 [[package]]
+name = "esp-println"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42dee1e9ac7c3539bf6464db1707b0edd7557168f98278cf3c84fe70e63c6ce6"
+dependencies = [
+ "document-features",
+ "esp-metadata-generated",
+ "esp-sync",
+ "log",
+]
+
+[[package]]
 name = "esp-riscv-rt"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1412,6 +1424,7 @@ dependencies = [
  "embassy-time",
  "esp-bootloader-esp-idf",
  "esp-hal",
+ "esp-println",
  "esp-rtos",
  "esp-sync",
  "static_cell",

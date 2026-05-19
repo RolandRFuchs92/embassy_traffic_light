@@ -9,6 +9,7 @@
 
 use embassy_executor::{Spawner};
 use embassy_time::{Duration, Timer};
+use esp_println::println;
 use esp_hal::clock::CpuClock;
 use esp_hal::timer::timg::TimerGroup;
 use esp_hal::gpio::{ Output, OutputConfig, Level, Pull, Input, InputConfig };
@@ -37,12 +38,6 @@ enum TrafficLightState {
     Green { pedestrian_waiting: bool },
     Amber { pedestrian_waiting: bool },
     Red { pedestrian_waiting: bool },
-}
-
-enum TrafficLightSequence {
-    Green = 0,
-    Amber = 1,
-    Red = 2,
 }
 
 static BTN_EVT: Channel<CriticalSectionRawMutex, ButtonEvent, 4> = Channel::new();
@@ -133,8 +128,19 @@ fn traffic_light_transition(state: TrafficLightState, event: ButtonEvent) -> (Tr
         } 
 }
 
+#[embassy_executor::task(pool_size = 4)]
+async fn button_event(mut button: Input<'static>){
+    loop {
+        button.wait_for_falling_edge().await;
+        BTN_EVT.send(ButtonEvent::IsPressed).await;
+        Timer::after_millis(20).await;
+        button.wait_for_rising_edge().await;
+        Timer::after_millis(20).await;
+    }
+}
+
 #[embassy_executor::task]
-async fn button_event(mut led_arr: [Output<'static>; 3], mut ped_led: Output<'static>){
+async fn traffic_light(mut led_arr: [Output<'static>; 3], mut ped_led: Output<'static>){
     let mut traffic_light_state = TrafficLightState::Red { pedestrian_waiting: false };
     let mut duration = 3000;
 
@@ -146,19 +152,25 @@ async fn button_event(mut led_arr: [Output<'static>; 3], mut ped_led: Output<'st
                 ped_led.set_high();
             }
             Either::Second(()) => {
+                (traffic_light_state, duration) = traffic_light_transition(traffic_light_state, ButtonEvent::Tick);
+                let [green, amber, red] = &mut led_arr;
+                
                 match traffic_light_state {
                     TrafficLightState::Green { .. } => {
-                        led_arr[0].set_low();
-                        led_arr[1].set_high();
+                        println!("GREEN\r");
+                        red.set_low();
+                        green.set_high();
                         ped_led.set_low();
                     }
                     TrafficLightState::Amber { .. } => {
-                        led_arr[1].set_low();
-                        led_arr[2].set_high();
+                        println!("Amber\r");
+                        green.set_low();
+                        amber.set_high();
                     }
                     TrafficLightState::Red { .. } => {
-                        led_arr[2].set_low();
-                        led_arr[0].set_high();
+                        println!("Red\r");
+                        amber.set_low();
+                        red.set_high();
                     }
                 }        
             }
@@ -189,8 +201,13 @@ async fn main(spawner: Spawner) -> ! {
     let red = Output::new(peripherals.GPIO8, Level::High, output_cfg);
     let ped = Output::new(peripherals.GPIO5, Level::Low, output_cfg);
 
-    // TODO: Spawn some tasks
-    let _ = spawner;
+    let input_cfg = InputConfig::default().with_pull(Pull::Up);
+    let btn = Input::new(peripherals.GPIO4, input_cfg);
+
+    let led_arr = [green, amber, red];
+
+    spawner.spawn(traffic_light(led_arr, ped).unwrap());
+    spawner.spawn(button_event(btn).unwrap());
 
     loop {
         Timer::after(Duration::from_secs(1)).await;
